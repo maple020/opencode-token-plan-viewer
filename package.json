@@ -1,0 +1,26 @@
+{
+  "name": "opencode-token-checker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "OpenCode TUI sidebar combining provider quota with local per-model token usage.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/neverendingstory/opencode-token-checker.git"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./server.js",
+    "./server": "./server.js",
+    "./tui": "./tui.jsx"
+  },
+  "scripts": {
+    "test": "node --test usage.test.js integration.test.js",
+    "test:backend:bun": "bun test usage.test.js",
+    "test:ui": "BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 bun test --preload @opentui/solid/preload panel.ui.test.js",
+    "test:tui": "BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 bun test --preload @opentui/solid/preload tui.smoke.test.js",
+    "test:all": "npm test && npm run test:backend:bun && npm run test:ui && npm run test:tui"
+  },
+  "dependencies": {
+    "@slkiser/opencode-quota": "4.9.0"
+  }
+}

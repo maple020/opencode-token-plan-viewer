@@ -1,0 +1,30 @@
+{
+  "enabled": true,
+  "enabledProviders": "auto",
+  "onlyCurrentModel": false,
+  "percentDisplayMode": "remaining",
+  "formatStyle": "allWindows",
+  "accountingDetail": "detailed",
+  "minIntervalMs": 60000,
+  "enableToast": false,
+  "tuiSidebarPanel": {
+    "enabled": true,
+    "formatStyle": "allWindows"
+  },
+  "showSessionTokens": false,
+  "tuiCompactStatus": {
+    "enabled": false,
+    "homeBottom": false,
+    "sessionPrompt": false
+  },
+  "tuiPromptBar": {
+    "enabled": false
+  },
+  "maintainerAnnouncements": {
+    "enabled": false,
+    "home": false
+  },
+  "resetNotifications": {
+    "enabled": false
+  }
+}
