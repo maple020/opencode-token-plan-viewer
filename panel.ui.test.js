@@ -38,10 +38,8 @@ test("native panel: scopes, models, stale failures, races and disposal", async (
   let commands;
   let host;
   let panel;
-  const scrollboxes = (node) => [
-    ...(node instanceof ScrollBoxRenderable ? [node] : []),
-    ...node.getChildren().flatMap(scrollboxes),
-  ];
+  const descendants = (node) => [node, ...node.getChildren().flatMap(descendants)];
+  const scrollboxes = (node) => descendants(node).filter((child) => child instanceof ScrollBoxRenderable);
   const [sessionID, setSessionID] = createSignal("first");
   const row = (model, extra = {}) => ({ provider: "local-provider", model, messages: 2,
     input: 100, output: 30, reasoning: 10, cacheRead: 200, cacheWrite: 100,
@@ -66,9 +64,22 @@ test("native panel: scopes, models, stale failures, races and disposal", async (
     }, { width: 38, height: 26 });
     const frame = async () => { await ui.renderOnce(); return ui.captureCharFrame(); };
     const run = (name) => commands.find((command) => command.name === `model-usage.${name}`).run();
+    let text = await frame();
+    expect(text).toContain("▸ 本会话 · 含子代理");
+    expect(text).toContain("▸ 全部历史 · 本机");
+    expect(requests).toHaveLength(0);
+    expect(timers.size).toBe(0);
+    run("refresh");
+    await frame();
+    expect(requests).toHaveLength(0);
+    run("session");
+    text = await frame();
+    expect(text).toContain("▾ 本会话 · 含子代理");
+    expect(text).toContain("▸ 全部历史 · 本机");
+    expect([...timers.keys()].map((handle) => handle.ms)).toEqual([5000]);
     expect(requests.map((request) => request.id)).toEqual(["first"]);
     requests[0].resolve(result("model", 6));
-    let text = await frame();
+    text = await frame();
     expect(text).toContain("模型用量");
     expect(text).toContain("本会话 · 含子代理");
     expect(text).toContain("440 Token · 2 消息");
@@ -147,6 +158,42 @@ test("native panel: scopes, models, stale failures, races and disposal", async (
     expect(text).toContain("[刷新]");
     ui.resize(38, 65);
 
+    now += 5000;
+    run("refresh");
+    const longModel = "模型🚀-very-long-model-name-with-version-2026-09";
+    const huge = row(longModel, { provider: "本机", input: 238700000, output: 6400000,
+      cacheRead: 1900000000, cacheHitRate: 88.8 });
+    requests.at(-1).resolve({ rows: [huge], totals: huge, updatedAt: now });
+    ui.resize(60, 65);
+    for (const width of [38, 34, 30, 46, 30]) {
+      // Resize the containing sidebar, not the terminal; labels track its actual cell width.
+      setProp(host, "width", width);
+      await ui.flush();
+      text = await frame();
+      const header = descendants(panel).find((node) => node.plainText?.includes(longModel));
+      expect(header).toBeDefined();
+      expect(header.parent.height).toBe(3);
+      const lines = text.split("\n").slice(header.y, header.y + 3);
+      expect(lines[0]).toContain("本机 · 模型🚀");
+      expect(lines[0]).toMatch(/…|\.\.\./);
+      expect(lines[1]).toContain(header.width >= 37 ? "输入 238.7M · 输出 6.4M · 缓存读 1.9B" : "入238.7M 出6.4M 读1.9B");
+      expect(lines[2]).toContain("缓存命中");
+      expect(lines[2]).toContain("88.8%");
+      expect(header.parent.getChildren().map((node) => node.height)).toEqual([1, 1, 1]);
+      expect(scrollboxes(host)).toEqual([host]);
+      expect(host.scrollWidth).toBe(host.viewport.width);
+    }
+    setProp(host, "width", 18);
+    await ui.flush();
+    text = await frame();
+    const emergencyHeader = descendants(panel).find((node) => node.plainText?.includes(longModel));
+    const emergencyNumbers = text.split("\n")[emergencyHeader.y + 1].trim();
+    expect(emergencyNumbers).toBe("入238.7M 出6.4M");
+    expect(emergencyHeader.parent.height).toBe(3);
+    setProp(host, "width", "100%");
+    ui.resize(38, 65);
+
+    expect(requests.every((request) => request.id !== null)).toBe(true);
     run("history");
     await frame();
     expect(requests.at(-1).id).toBe(null);

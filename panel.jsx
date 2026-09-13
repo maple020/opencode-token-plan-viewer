@@ -5,6 +5,20 @@ import { queryUsage } from "./usage.js";
 const valid = (value) => typeof value === "number" && Number.isFinite(value) && value >= 0;
 const compact = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
 const number = (value) => valid(value) ? compact.format(value) : "未知";
+function modelNumbers(row, width) {
+  const values = [row.input, row.output, row.cacheRead].map(number);
+  // Formatted numbers are ASCII; 未知 and the Chinese labels use two cells per character.
+  const sizes = values.map((value) => value === "未知" ? 4 : value.length);
+  if (sizes.reduce((sum, size) => sum + size, 0) + 23 <= width) {
+    return `输入 ${values[0]} · 输出 ${values[1]} · 缓存读 ${values[2]}`;
+  }
+  const items = values.map((value, index) => `${["入", "出", "读"][index]}${value}`);
+  let used = 0;
+  return items.filter((_, index) => {
+    used += sizes[index] + 2 + (index ? 1 : 0);
+    return used <= width;
+  }).join(" ");
+}
 const tokens = (row) => {
   const values = [row?.input, row?.output, row?.reasoning, row?.cacheRead, row?.cacheWrite];
   return values.every(valid) ? values.reduce((sum, value) => sum + value, 0) : null;
@@ -104,7 +118,7 @@ function CacheHit(props) {
     return "━".repeat(filled) + "─".repeat(8 - filled);
   };
   return (
-    <text wrapMode="word" fg={props.colors().muted}>
+    <text wrapMode="none" height={1} flexShrink={0} fg={props.colors().muted}>
       {props.summary ? "缓存命中（汇总）" : "缓存命中 "}
       <span fg={props.colors().accent}>{props.summary ? "" : `${bar()} `}</span>
       {rate() === null ? "未知" : `${rate().toFixed(1)}%`}
@@ -114,6 +128,7 @@ function CacheHit(props) {
 
 function ScopeView(props) {
   const scope = props.scope;
+  const [modelWidth, setModelWidth] = createSignal(0);
   const rows = createMemo(() => [...(scope.data()?.rows ?? [])].sort((a, b) =>
     (tokens(b) ?? -1) - (tokens(a) ?? -1)));
   const visible = createMemo(() => scope.all() ? rows() : rows().slice(0, 3));
@@ -143,15 +158,16 @@ function ScopeView(props) {
               </text>
               <CacheHit summary rate={scope.data()?.totals?.cacheHitRate} colors={props.colors} />
               <Show when={rows().length > 0} fallback={<text fg={props.colors().muted}>暂无模型用量记录</text>}>
-                <box gap={1} paddingTop={1} width="100%" minWidth={0} flexShrink={0}>
+                <box gap={1} paddingTop={1} width="100%" minWidth={0} flexShrink={0}
+                  onSizeChange={function () { setModelWidth(this.width); }}>
                   <Index each={visible()}>{(row) => (
                     <box gap={0} minWidth={0} flexShrink={0}>
-                      <text fg={props.colors().text} width="100%" wrapMode="char">
+                      <text fg={props.colors().text} width="100%" wrapMode="none" truncate height={1} flexShrink={0}>
                         <span fg={props.colors().muted}>{label(row().provider, "未知提供商")} · </span>
                         <b>{label(row().model, "未知模型")}</b>
                       </text>
-                      <text fg={props.colors().muted} wrapMode="word">
-                        输入 {number(row().input)} · 输出 {number(row().output)} · 缓存读 {number(row().cacheRead)}
+                      <text fg={props.colors().muted} wrapMode="none" height={1} flexShrink={0}>
+                        {modelNumbers(row(), modelWidth())}
                       </text>
                       <CacheHit rate={row().cacheHitRate} colors={props.colors} />
                       <Show when={scope.details()}>
@@ -177,7 +193,7 @@ function ScopeView(props) {
                   <text fg={props.colors().muted} wrapMode="word">
                     合计记录成本 {cost(scope.data()?.totals?.cost)} · 非账单
                   </text>
-                  <text fg={props.colors().muted} wrapMode="word">Token = 输入 + 输出 + 推理 + 缓存读写；按 Token 排序。缓存命中 = 缓存读 /（输入 + 缓存读 + 缓存写）；汇总按总量计算</text>
+                  <text fg={props.colors().muted} wrapMode="word">入 / 出 / 读 = 输入 / 输出 / 缓存读。Token = 输入 + 输出 + 推理 + 缓存读写；按 Token 排序。缓存命中 = 缓存读 /（输入 + 缓存读 + 缓存写）；汇总按总量计算</text>
                 </Show>
               </Show>
             </Show>
@@ -200,7 +216,7 @@ export function ModelUsagePanel(props) {
     };
   };
   const current = useUsageScope(() => typeof props.sessionID === "string" && props.sessionID.trim()
-    ? props.sessionID : undefined, 5000, true);
+    ? props.sessionID : undefined, 5000, false);
   const history = useUsageScope(() => null, 60000, false);
   const forOpen = (action) => () => {
     for (const scope of [current, history]) if (scope.open()) scope[action]();

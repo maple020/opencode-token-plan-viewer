@@ -14,11 +14,12 @@
     "./tui": "./tui.jsx"
   },
   "scripts": {
-    "test": "node --test usage.test.js integration.test.js",
-    "test:backend:bun": "bun test usage.test.js",
-    "test:ui": "BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 bun test --preload @opentui/solid/preload panel.ui.test.js",
-    "test:tui": "BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 bun test --preload @opentui/solid/preload tui.smoke.test.js",
-    "test:all": "npm test && npm run test:backend:bun && npm run test:ui && npm run test:tui"
+    "test": "node --test usage.test.js quota.test.js integration.test.js",
+    "test:backend:bun": "bun test usage.test.js quota.test.js",
+    "test:ui": "BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 bun test --preload @opentui/solid/preload ./panel.ui.test.js",
+    "test:quota-ui": "BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 bun test --preload @opentui/solid/preload ./quota-panel.ui.test.js",
+    "test:tui": "BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 bun test --preload @opentui/solid/preload ./tui.smoke.test.js",
+    "test:all": "npm test && npm run test:backend:bun && npm run test:ui && npm run test:quota-ui && npm run test:tui"
   },
   "dependencies": {
     "@slkiser/opencode-quota": "4.9.0"
