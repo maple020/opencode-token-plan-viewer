@@ -7,7 +7,7 @@ OpenCode TUI 侧栏插件：上游额度插件显示提供商剩余额度，本�
 需要 Node.js 22+、Bun 和 OpenCode（已在 OpenCode 1.18.30 验证）。
 
 ```sh
-git clone https://github.com/neverendingstory/opencode-token-checker.git
+git clone https://github.com/maple020/opencode-token-plan-viewer.git opencode-token-checker
 cd opencode-token-checker
 npm ci --ignore-scripts
 ```

@@ -5,7 +5,7 @@
   "description": "OpenCode TUI sidebar combining provider quota with local per-model token usage.",
   "repository": {
     "type": "git",
-    "url": "https://github.com/neverendingstory/opencode-token-checker.git"
+    "url": "https://github.com/maple020/opencode-token-plan-viewer.git"
   },
   "type": "module",
   "exports": {
